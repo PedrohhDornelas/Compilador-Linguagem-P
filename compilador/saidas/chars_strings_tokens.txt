@@ -1,0 +1,14 @@
+LINHA TIPO          LEXEMA
+----------------------------------------
+1     CHAR_LITERAL  'a'
+2     CHAR_LITERAL  'Z'
+3     CHAR_LITERAL  '+'
+4     CHAR_LITERAL  '_'
+5     CHAR_LITERAL  '0'
+6     CHAR_LITERAL  ' '
+7     FMT_STRING    "oi"
+8     FMT_STRING    "valor = {}"
+9     FMT_STRING    "{} + {} = {}"
+10    FMT_STRING    "x: {}, y: {}"
+----------------------------------------
+Total: 10 token(s)

@@ -1,0 +1,11 @@
+LINHA TIPO          LEXEMA
+----------------------------------------
+1     INT_CONST     0
+2     INT_CONST     10
+3     INT_CONST     12345
+4     FLOAT_CONST   1.5
+5     FLOAT_CONST   0.0
+6     FLOAT_CONST   3.14159
+7     FLOAT_CONST   100.25
+----------------------------------------
+Total: 7 token(s)

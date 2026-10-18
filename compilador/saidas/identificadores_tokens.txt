@@ -1,0 +1,16 @@
+LINHA TIPO          LEXEMA
+----------------------------------------
+1     ID            x
+2     ID            abc
+3     ID            Var2
+4     ID            soma_total
+5     ID            a_b_c_1
+6     ID            maior
+7     ID            fnx
+8     ID            mainx
+9     ID            int2
+10    ID            x
+11    INT_CONST     1
+11    ID            abc
+----------------------------------------
+Total: 12 token(s)

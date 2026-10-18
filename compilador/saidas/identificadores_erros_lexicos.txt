@@ -1,0 +1,2 @@
+Linha 10: caractere inválido '_' -> _
+Total: 1 erro(s) léxico(s)

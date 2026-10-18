@@ -1,0 +1,15 @@
+LINHA TIPO          LEXEMA
+----------------------------------------
+1     FUNCTION      fn
+1     MAIN          main
+1     LET           let
+1     INT           int
+1     FLOAT         float
+1     CHAR          char
+1     IF            if
+1     ELSE          else
+1     WHILE         while
+1     PRINTLN       println
+1     RETURN        return
+----------------------------------------
+Total: 11 token(s)

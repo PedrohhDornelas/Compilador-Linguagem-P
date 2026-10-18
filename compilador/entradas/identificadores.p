@@ -1,0 +1,11 @@
+x
+abc
+Var2
+soma_total
+a_b_c_1
+maior
+fnx
+mainx
+int2
+_x
+1abc
