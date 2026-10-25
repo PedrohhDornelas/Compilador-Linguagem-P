@@ -6,16 +6,16 @@ def proximo_lexema(codigo, inicio):
     n = len(codigo)
     estado = INICIAL
     j = inicio
-    ultimo = None  # (estado_de_aceitacao, posicao_final) mais recente
+    ultimo = None  #estado_de_aceitacao
  
     while True:
-        c = codigo[j] if j < n else None          # None = fim do arquivo
+        c = codigo[j] if j < n else None         
         prox = transicao(estado, classificar(c))
-        if prox is None:                          # sem transição: para
+        if prox is None:                        
             break
         estado = prox
         j += 1
-        if estado in ACEITACAO:                   # lembra o último ponto válido
+        if estado in ACEITACAO:                   
             ultimo = (estado, j)
  
     if ultimo is not None:
@@ -30,7 +30,7 @@ def recuperar_erro(codigo, inicio, fim_afd):
             fim_linha = len(codigo)
         achou = codigo.find(c, inicio + 1, fim_linha)
         return achou + 1 if achou != -1 else fim_linha
-    return max(fim_afd, inicio + 1)               # garante progresso
+    return max(fim_afd, inicio + 1)               
  
  
 def mensagem_erro(lexema):
@@ -52,24 +52,23 @@ def mensagem_erro(lexema):
     return f"caractere inválido '{c}'"
 
 def analisar(codigo):
-    """Percorre todo o código e devolve (tokens, erros)."""
     tokens, erros = [], []
     i, linha, n = 0, 1, len(codigo)
  
     while i < n:
         estado, fim = proximo_lexema(codigo, i)
  
-        if estado is not None:                    # reconheceu um lexema
+        if estado is not None:                    
             lexema = codigo[i:fim]
             tipo = ACEITACAO[estado]
-            if tipo is None:                      # espaço em branco
+            if tipo is None:                    
                 linha += lexema.count("\n")
             else:
-                if tipo == "ID":                  # palavra reservada?
+                if tipo == "ID":                 
                     tipo = PALAVRAS_RESERVADAS.get(lexema, "ID")
                 tokens.append(Token(lexema, tipo, linha))
             i = fim
-        else:                                     # erro léxico
+        else:                                     
             fim = recuperar_erro(codigo, i, fim)
             lexema = codigo[i:fim]
             erros.append(ErroLexico(linha, lexema, mensagem_erro(lexema)))
