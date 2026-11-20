@@ -4,7 +4,7 @@ from typing import List, Optional
 
 
 # ---------------------------------------------------------------------------
-# Representação interna dos tipos (seção 7.4 da especificação)
+# Representação interna dos tipos 
 # ---------------------------------------------------------------------------
 
 class DataType(IntEnum):
@@ -16,12 +16,11 @@ class DataType(IntEnum):
 
 
 # ---------------------------------------------------------------------------
-# Registro de chamada de função (seção 7.3)
+# Registro de chamada de função 
 # ---------------------------------------------------------------------------
 
 @dataclass
 class FunctionRegister:
-    """Um registro para cada chamada de função encontrada no código."""
     name: str               # lexema com o nome da função chamada
     num_args: int            # número de argumentos da chamada
     args: List[str]          # lexemas dos argumentos
@@ -31,7 +30,7 @@ class FunctionRegister:
 
 
 # ---------------------------------------------------------------------------
-# Entrada da tabela de símbolos (seção 7.2)
+# Entrada da tabela de símbolos
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -39,8 +38,8 @@ class SimboloEntry:
     """Uma entrada (registro) na tabela de símbolos."""
     name: str                                               # nome da variável ou função
     datatype: DataType                                      # int, float, char (ou void/error)
-    is_param: bool          = False                         # é parâmetro?
-    pos_param: int          = -1                            # -1 = local; 0,1,2… = posição do parâmetro
+    is_param: bool = False                         # é parâmetro?
+    pos_param: int = -1                            # -1 = local; 0,1,2… = posição do parâmetro
     call_refs: List[FunctionRegister] = field(default_factory=list)
 
 
