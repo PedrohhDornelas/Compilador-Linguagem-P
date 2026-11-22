@@ -1,0 +1,2 @@
+Linha 1: Esperado 'fn', encontrado 'x'
+Total: 1 erro(s) sintático(s)

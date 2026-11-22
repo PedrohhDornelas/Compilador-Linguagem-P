@@ -1,0 +1,16 @@
+=== Tabela: soma  |  ret_type = INT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  a      a      INT       True      0          NULL
+  b      b      INT       True      1          NULL
+
+=== Tabela: main  |  ret_type = VOID ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  x      x      INT       False     -1         NULL
+
+=== Tabela: outra  |  ret_type = VOID ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+
+Total: 3 tabela(s) de símbolos

@@ -1,0 +1,17 @@
+=== Tabela: soma  |  ret_type = INT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  a      a      INT       True      0          NULL
+  r      r      INT       False     -1         NULL
+
+=== Tabela: main  |  ret_type = VOID ===
+  Chave    Name     DataType  is_param  pos_param  call_refs
+  -----------------------------------------------------------------------------------------
+  x        x        INT       False     -1         NULL
+  soma     soma     INT       False     -1         FuncReg(name=soma, num_args=2, args=['1', '2'])
+  println  println  VOID      False     -1         NULL
+
+  Registros de chamadas de função:
+    FuncReg(name=soma, num_args=2, args=['1', '2'])
+
+Total: 2 tabela(s) de símbolos

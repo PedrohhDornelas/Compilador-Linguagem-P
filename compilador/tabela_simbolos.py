@@ -73,11 +73,14 @@ class TabelaSimbolos:
     def formatar(self) -> str:
         linhas = []
         linhas.append(f"=== Tabela: {self.nome_funcao}  |  ret_type = {self.ret_type.name} ===")
+
+        # Largura da coluna de nomes se ajusta ao maior identificador
+        larg = max([len(k) for k in self.simbolos] + [len("Chave")]) + 2
         linhas.append(
-            f"  {'Chave':<14}{'Name':<14}{'DataType':<12}"
-            f"{'is_param':<10}{'pos_param':<12}call_refs"
+            f"  {'Chave':<{larg}}{'Name':<{larg}}{'DataType':<10}"
+            f"{'is_param':<10}{'pos_param':<11}call_refs"
         )
-        linhas.append("  " + "-" * 80)
+        linhas.append("  " + "-" * (2 * larg + 10 + 10 + 11 + 40))
 
         for chave, s in self.simbolos.items():
             if s.call_refs:
@@ -85,8 +88,8 @@ class TabelaSimbolos:
             else:
                 refs = "NULL"
             linhas.append(
-                f"  {chave:<14}{s.name:<14}{s.datatype.name:<12}"
-                f"{str(s.is_param):<10}{s.pos_param:<12}{refs}"
+                f"  {chave:<{larg}}{s.name:<{larg}}{s.datatype.name:<10}"
+                f"{str(s.is_param):<10}{s.pos_param:<11}{refs}"
             )
 
         # FunctionRegisters detalhados

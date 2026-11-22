@@ -1,0 +1,11 @@
+=== Tabela: main  |  ret_type = VOID ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  y      y      INT       False     -1         NULL
+
+=== Tabela: g  |  ret_type = VOID ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  z      z      CHAR      False     -1         NULL
+
+Total: 2 tabela(s) de símbolos

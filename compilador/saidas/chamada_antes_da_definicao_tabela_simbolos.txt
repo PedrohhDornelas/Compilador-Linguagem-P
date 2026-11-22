@@ -1,0 +1,17 @@
+=== Tabela: main  |  ret_type = VOID ===
+  Chave    Name     DataType  is_param  pos_param  call_refs
+  -----------------------------------------------------------------------------------------
+  r        r        FLOAT     False     -1         NULL
+  media    media    FLOAT     False     -1         FuncReg(name=media, num_args=2, args=['1.0', '3.0'])
+  println  println  VOID      False     -1         NULL
+
+  Registros de chamadas de função:
+    FuncReg(name=media, num_args=2, args=['1.0', '3.0'])
+
+=== Tabela: media  |  ret_type = FLOAT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  a      a      FLOAT     True      0          NULL
+  b      b      FLOAT     True      1          NULL
+
+Total: 2 tabela(s) de símbolos

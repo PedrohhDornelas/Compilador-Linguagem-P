@@ -1,0 +1,6 @@
+Linha 1: Esperado ')', encontrado '->'
+Linha 7: Esperado comando ou '}', encontrado 'else'
+Linha 10: Esperado expressão (identificador, constante ou '('), encontrado '{'
+Linha 16: Esperado '}', encontrado 'fn'
+Linha 16: Esperado '}', encontrado 'fn'
+Total: 5 erro(s) sintático(s)

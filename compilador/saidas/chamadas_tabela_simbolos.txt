@@ -1,0 +1,29 @@
+=== Tabela: dobro  |  ret_type = INT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  x      x      INT       True      0          NULL
+
+=== Tabela: soma3  |  ret_type = INT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  a      a      INT       True      0          NULL
+  b      b      INT       True      1          NULL
+  c      c      INT       True      2          NULL
+
+=== Tabela: main  |  ret_type = VOID ===
+  Chave    Name     DataType  is_param  pos_param  call_refs
+  -----------------------------------------------------------------------------------------
+  r        r        INT       False     -1         NULL
+  s        s        INT       False     -1         NULL
+  dobro    dobro    INT       False     -1         FuncReg(name=dobro, num_args=1, args=['4']); FuncReg(name=dobro, num_args=1, args=['1']); FuncReg(name=dobro, num_args=1, args=['7'])
+  soma3    soma3    INT       False     -1         FuncReg(name=soma3, num_args=3, args=['r', 'dobro', '3']); FuncReg(name=soma3, num_args=3, args=['1', '2', '3'])
+  println  println  VOID      False     -1         NULL
+
+  Registros de chamadas de função:
+    FuncReg(name=dobro, num_args=1, args=['4'])
+    FuncReg(name=dobro, num_args=1, args=['1'])
+    FuncReg(name=dobro, num_args=1, args=['7'])
+    FuncReg(name=soma3, num_args=3, args=['r', 'dobro', '3'])
+    FuncReg(name=soma3, num_args=3, args=['1', '2', '3'])
+
+Total: 3 tabela(s) de símbolos

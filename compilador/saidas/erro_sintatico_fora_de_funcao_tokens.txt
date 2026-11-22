@@ -1,0 +1,37 @@
+LINHA TIPO          LEXEMA
+----------------------------------------
+1     LET           let
+1     ID            x
+1     COLON         :
+1     INT           int
+1     SEMICOLON     ;
+2     ID            x
+2     ASSIGN        =
+2     INT_CONST     1
+2     SEMICOLON     ;
+4     FUNCTION      fn
+4     MAIN          main
+4     LBRACKET      (
+4     RBRACKET      )
+4     LBRACE        {
+5     LET           let
+5     ID            y
+5     COLON         :
+5     INT           int
+5     SEMICOLON     ;
+6     RBRACE        }
+8     RBRACE        }
+8     ID            lixo
+10    FUNCTION      fn
+10    ID            g
+10    LBRACKET      (
+10    RBRACKET      )
+10    LBRACE        {
+11    LET           let
+11    ID            z
+11    COLON         :
+11    CHAR          char
+11    SEMICOLON     ;
+12    RBRACE        }
+----------------------------------------
+Total: 33 token(s)

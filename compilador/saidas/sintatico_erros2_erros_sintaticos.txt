@@ -1,0 +1,4 @@
+Linha 3: Esperado comando ou '}', encontrado 'else'
+Linha 8: Esperado 'fn' ou fim do arquivo, encontrado '}'
+Linha 12: Esperado '}', encontrado fim do arquivo
+Total: 3 erro(s) sintático(s)

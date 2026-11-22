@@ -47,6 +47,13 @@ Gramática implementada:
     ListaArgs2       → , Arg ListaArgs2 | ε
     Arg              → ID ChamadaFuncao
                      | INT_CONST | FLOAT_CONST | CHAR_LITERAL
+
+Recuperação de erros (modo pânico):
+    Ao detectar um erro, o parser registra UMA mensagem e entra em "modo pânico":
+    novos erros são suprimidos até o parser se ressincronizar. A ressincronização
+    acontece (a) quando um match() é bem-sucedido, ou (b) ao descartar tokens até
+    um ponto seguro (';', '}', início de comando ou 'fn'). Assim, um único erro no
+    código-fonte gera uma única mensagem, em vez de uma cascata de erros.
 """
 
 from tokens import Token
@@ -54,7 +61,7 @@ from erros import ErroSintatico
 from tabela_simbolos import (
     TabelaSimbolos, SimboloEntry, FunctionRegister, DataType,
 )
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 # Mapeamento: token de tipo da linguagem → DataType interno
@@ -64,6 +71,61 @@ _TIPO_MAP = {
     "CHAR":  DataType.CHAR,
 }
 
+# Nomes legíveis dos tokens, usados nas mensagens de erro sintático
+_NOME_LEGIVEL = {
+    "FUNCTION": "'fn'", "MAIN": "'main'", "LET": "'let'",
+    "INT": "'int'", "FLOAT": "'float'", "CHAR": "'char'",
+    "IF": "'if'", "ELSE": "'else'", "WHILE": "'while'",
+    "PRINTLN": "'println'", "RETURN": "'return'",
+    "LBRACKET": "'('", "RBRACKET": "')'", "LBRACE": "'{'", "RBRACE": "'}'",
+    "ARROW": "'->'", "COLON": "':'", "SEMICOLON": "';'", "COMMA": "','",
+    "ASSIGN": "'='", "EQ": "'=='", "NE": "'!='", "GT": "'>'", "GE": "'>='",
+    "LT": "'<'", "LE": "'<='", "PLUS": "'+'", "MINUS": "'-'",
+    "MULT": "'*'", "DIV": "'/'",
+    "ID": "identificador", "INT_CONST": "constante inteira",
+    "FLOAT_CONST": "constante float", "CHAR_LITERAL": "literal de caractere",
+    "FMT_STRING": "string de formatação", "EOF": "fim do arquivo",
+}
+
+# Tokens que ancoram a recuperação de erros (modo pânico)
+_SYNC_COMANDO = {"RBRACE", "EOF", "FUNCTION", "LET", "IF", "WHILE",
+                 "PRINTLN", "RETURN"}
+_INICIO_COMANDO = {"ID", "IF", "WHILE", "PRINTLN", "RETURN", "LBRACE"}
+# Tokens cuja consumição com sucesso encerra o modo pânico
+_FIM_PANICO = {"SEMICOLON", "LBRACE", "RBRACE"}
+
+# Nome "legível" de cada token para as mensagens de erro
+# (o usuário vê '(' e não LBRACKET).
+_NOME_LEGIVEL = {
+    "FUNCTION":   "'fn'",
+    "MAIN":       "'main'",
+    "LET":        "'let'",
+    "IF":         "'if'",
+    "ELSE":       "'else'",
+    "WHILE":      "'while'",
+    "PRINTLN":    "'println'",
+    "RETURN":     "'return'",
+    "LBRACKET":   "'('",
+    "RBRACKET":   "')'",
+    "LBRACE":     "'{'",
+    "RBRACE":     "'}'",
+    "COLON":      "':'",
+    "SEMICOLON":  "';'",
+    "COMMA":      "','",
+    "ASSIGN":     "'='",
+    "ARROW":      "'->'",
+    "ID":         "identificador",
+    "FMT_STRING": "string de formatação",
+    "EOF":        "fim do arquivo",
+}
+
+# Tokens que podem iniciar um Comando
+# (ComandoSe → if ... | Bloco, por isso IF e LBRACE entram aqui).
+_INICIO_COMANDO = {"ID", "IF", "WHILE", "PRINTLN", "RETURN", "LBRACE"}
+
+# Pontos de ressincronização dentro de um bloco (modo pânico)
+_SYNC_COMANDO = _INICIO_COMANDO | {"LET", "RBRACE", "FUNCTION", "EOF"}
+
 
 class Parser:
     """Parser descendente recursivo preditivo (LL(1)) para a Linguagem P."""
@@ -72,10 +134,14 @@ class Parser:
         self.tokens = tokens
         self.pos = 0
         self.erros: List[ErroSintatico] = []
+        self.modo_panico = False
 
         # Tabelas de símbolos (uma por função/escopo)
         self.tabelas: List[TabelaSimbolos] = []
         self.tabela_atual: Optional[TabelaSimbolos] = None
+
+        # Redeclarações detectadas na inserção (usadas na fase semântica)
+        self.redeclaracoes: List[tuple] = []     # (linha, nome, função)
 
     # ══════════════════════════════════════════════════════════════════════
     #  Utilitários
@@ -85,31 +151,73 @@ class Parser:
         """Retorna o token na posição corrente ou um sentinela EOF."""
         if self.pos < len(self.tokens):
             return self.tokens[self.pos]
-        linha = self.tokens[-1].linha if self.tokens else 0
+        linha = self.tokens[-1].linha if self.tokens else 1
         return Token("$", "EOF", linha)
 
     def match(self, tipo_esperado: str) -> Token:
         """Consome e retorna o token se ele for do tipo esperado.
 
         Se não casar, registra um erro sintático e **não** consome o token
-        (para que a próxima regra da gramática possa tentar usá-lo).
+        (a recuperação fica a cargo de quem chamou / do modo pânico).
         """
         tok = self.token_atual()
         if tok.tipo == tipo_esperado:
             self.pos += 1
+            if tipo_esperado in _FIM_PANICO:
+                self.modo_panico = False
             return tok
-        self._erro(tipo_esperado, tok)
+        self._erro(_NOME_LEGIVEL.get(tipo_esperado, tipo_esperado), tok)
         return tok          # devolve o que encontrou, sem avançar
 
     def _erro(self, esperado: str, tok: Token):
-        """Registra um erro sintático."""
-        msg = f"Esperado '{esperado}', encontrado '{tok.lexema}' ({tok.tipo})"
+        """Registra um erro sintático (suprimido enquanto em modo pânico).
+
+        Em modo pânico os erros em cascata são descartados: só o primeiro
+        erro de cada trecho é reportado, até a próxima sincronização.
+        """
+        if self.modo_panico:
+            return
+        self.modo_panico = True
+        if tok.tipo == "EOF":
+            encontrado = "fim do arquivo"
+        else:
+            encontrado = f"'{tok.lexema}'"
         self.erros.append(ErroSintatico(
             linha=tok.linha,
             esperado=esperado,
-            encontrado=tok.tipo,
-            mensagem=msg,
+            encontrado=encontrado,
+            mensagem=f"Esperado {esperado}, encontrado {encontrado}",
         ))
+
+    # ---- Recuperação de erros (modo pânico) -----------------------------
+
+    def _sincronizar_comando(self):
+        """Descarta tokens até um ponto seguro dentro de um bloco.
+
+        Pára (consumindo) após um ';', ou (sem consumir) em '}', 'fn', EOF ou
+        no início de uma declaração/comando que não aparece em expressões.
+        """
+        while True:
+            t = self.token_atual().tipo
+            if t == "SEMICOLON":
+                self.pos += 1
+                break
+            if t in _SYNC_COMANDO:
+                break
+            self.pos += 1
+        self.modo_panico = False
+
+    def _sincronizar_cabecalho(self):
+        """Após erro no cabeçalho da função, avança até '{' ou próximo 'fn'."""
+        while self.token_atual().tipo not in ("LBRACE", "FUNCTION", "EOF"):
+            self.pos += 1
+        self.modo_panico = False
+
+    def _pular_ate_funcao(self):
+        """Erro fora de função: descarta tokens até o próximo 'fn' ou EOF."""
+        while self.token_atual().tipo not in ("FUNCTION", "EOF"):
+            self.pos += 1
+        self.modo_panico = False
 
     # ══════════════════════════════════════════════════════════════════════
     #  Ponto de entrada
@@ -118,10 +226,7 @@ class Parser:
     def parse(self):
         """Inicia a análise sintática (Programa)."""
         self.programa()
-        # Se sobraram tokens não consumidos, reporta
-        if self.pos < len(self.tokens):
-            tok = self.token_atual()
-            self._erro("fim do arquivo", tok)
+        self._resolver_tipos_chamadas()
 
     # ══════════════════════════════════════════════════════════════════════
     #  Produções da gramática
@@ -135,15 +240,27 @@ class Parser:
         self.funcao_seq()
 
     def funcao_seq(self):
-        # FuncaoSeq → Funcao FuncaoSeq | ε
-        if self.token_atual().tipo == "FUNCTION":
-            self.funcao()
-            self.funcao_seq()
-        # senão: ε
+        # FuncaoSeq → Funcao FuncaoSeq | ε   (ε = fim do arquivo)
+        # Implementada como laço: tokens que não iniciam função são erro e
+        # são descartados até o próximo 'fn'.
+        while True:
+            tok = self.token_atual()
+            if tok.tipo == "FUNCTION":
+                self.funcao()
+            elif tok.tipo == "EOF":
+                break
+            else:
+                self._erro("'fn' ou fim do arquivo", tok)
+                self._pular_ate_funcao()
 
     def funcao(self):
         # Funcao → fn NomeFuncao ( ListaParams ) TipoRetornoFuncao Bloco
-        self.match("FUNCTION")          # fn
+        tok = self.token_atual()
+        if tok.tipo != "FUNCTION":
+            self._erro("'fn'", tok)
+            self._pular_ate_funcao()
+            return
+        self.pos += 1                   # fn
 
         # NomeFuncao → ID | MAIN
         tok = self.token_atual()
@@ -151,7 +268,7 @@ class Parser:
             nome = tok.lexema
             self.pos += 1
         else:
-            self._erro("ID ou MAIN", tok)
+            self._erro("identificador ou 'main'", tok)
             nome = "<erro>"
 
         # Cria uma nova tabela de símbolos para esta função
@@ -162,9 +279,17 @@ class Parser:
         self.lista_params()
         self.match("RBRACKET")          # )
         self.tipo_retorno_funcao()
+        if self.modo_panico:
+            self._sincronizar_cabecalho()
         self.bloco()
 
     # ---- Parâmetros ----------------------------------------------------
+
+    def _inserir(self, entry: SimboloEntry, linha: int):
+        """Insere na tabela atual; guarda redeclarações para a semântica."""
+        if not self.tabela_atual.inserir(entry):
+            self.redeclaracoes.append(
+                (linha, entry.name, self.tabela_atual.nome_funcao))
 
     def lista_params(self):
         # ListaParams → ID : Type ListaParams2 | ε
@@ -172,13 +297,10 @@ class Parser:
             tok_id = self.match("ID")
             self.match("COLON")
             tipo = self.type_rule()
-
-            if tok_id.tipo == "ID":
-                self.tabela_atual.inserir(SimboloEntry(
-                    name=tok_id.lexema, datatype=tipo,
-                    is_param=True, pos_param=0,
-                ))
-
+            self._inserir(SimboloEntry(
+                name=tok_id.lexema, datatype=tipo,
+                is_param=True, pos_param=0,
+            ), tok_id.linha)
             self.lista_params2(1)
         # senão: ε (sem parâmetros)
 
@@ -189,13 +311,11 @@ class Parser:
             tok_id = self.match("ID")
             self.match("COLON")
             tipo = self.type_rule()
-
             if tok_id.tipo == "ID":
-                self.tabela_atual.inserir(SimboloEntry(
+                self._inserir(SimboloEntry(
                     name=tok_id.lexema, datatype=tipo,
                     is_param=True, pos_param=pos,
-                ))
-
+                ), tok_id.linha)
             self.lista_params2(pos + 1)
         # senão: ε
 
@@ -215,13 +335,17 @@ class Parser:
         if tok.tipo in _TIPO_MAP:
             self.pos += 1
             return _TIPO_MAP[tok.tipo]
-        self._erro("int, float ou char", tok)
+        self._erro("'int', 'float' ou 'char'", tok)
         return DataType.ERROR
 
     # ---- Bloco / Sequência ---------------------------------------------
 
     def bloco(self):
         # Bloco → { Sequencia }
+        if self.token_atual().tipo != "LBRACE":
+            # Sem '{' não há bloco: reporta e não consome o '}' de quem o contém
+            self._erro("'{'", self.token_atual())
+            return
         self.match("LBRACE")            # {
         self.sequencia()
         self.match("RBRACE")            # }
@@ -229,23 +353,27 @@ class Parser:
     def sequencia(self):
         # Sequencia → Declaracao Sequencia | Comando Sequencia | ε
         #
-        # Usa um laço com verificação de progresso para evitar loop infinito
-        # caso um erro impeça o consumo de tokens.
+        # Laço com recuperação: ao terminar cada item em modo pânico, os
+        # tokens são descartados até um ponto seguro (_sincronizar_comando).
         while True:
             tok = self.token_atual()
-            if tok.tipo == "EOF":
-                break
+            if tok.tipo in ("RBRACE", "EOF", "FUNCTION"):
+                break                   # ε — fim da sequência
 
             pos_antes = self.pos
 
             if tok.tipo == "LET":
                 self.declaracao()
-            elif tok.tipo in ("ID", "IF", "WHILE", "PRINTLN", "RETURN"):
+            elif tok.tipo in _INICIO_COMANDO:
                 self.comando()
             else:
-                break                   # ε — espera-se }
+                self._erro("comando ou '}'", tok)
+                self.pos += 1           # garante progresso
 
-            # Segurança: se nenhum token foi consumido, avança um para não travar
+            if self.modo_panico:
+                self._sincronizar_comando()
+
+            # Segurança: se nenhum token foi consumido, avança um
             if self.pos == pos_antes:
                 self.pos += 1
 
@@ -254,35 +382,35 @@ class Parser:
     def declaracao(self):
         # Declaracao → let VarList : Type ;
         self.match("LET")
-        nomes = self.var_list()
+        toks = self.var_list()
         self.match("COLON")
         tipo = self.type_rule()
         self.match("SEMICOLON")
 
         # Registra cada variável na tabela de símbolos
-        for nome in nomes:
-            self.tabela_atual.inserir(SimboloEntry(
-                name=nome, datatype=tipo,
+        for tk in toks:
+            self._inserir(SimboloEntry(
+                name=tk.lexema, datatype=tipo,
                 is_param=False, pos_param=-1,
-            ))
+            ), tk.linha)
 
-    def var_list(self) -> List[str]:
+    def var_list(self) -> List[Token]:
         # VarList → ID VarList2
-        nomes: List[str] = []
+        toks: List[Token] = []
         tok = self.match("ID")
         if tok.tipo == "ID":
-            nomes.append(tok.lexema)
-        self.var_list2(nomes)
-        return nomes
+            toks.append(tok)
+        self.var_list2(toks)
+        return toks
 
-    def var_list2(self, nomes: List[str]):
+    def var_list2(self, toks: List[Token]):
         # VarList2 → , ID VarList2 | ε
         if self.token_atual().tipo == "COMMA":
             self.match("COMMA")
             tok = self.match("ID")
             if tok.tipo == "ID":
-                nomes.append(tok.lexema)
-            self.var_list2(nomes)
+                toks.append(tok)
+            self.var_list2(toks)
         # senão: ε
 
     # ---- Comandos ------------------------------------------------------
@@ -299,7 +427,8 @@ class Parser:
             tok_id = self.match("ID")
             self.atribuicao_ou_chamada(tok_id)
 
-        elif tok.tipo == "IF":
+        elif tok.tipo in ("IF", "LBRACE"):
+            # ComandoSe → if ... | Bloco  (bloco solto é comando válido)
             self.comando_se()
 
         elif tok.tipo == "WHILE":
@@ -309,6 +438,15 @@ class Parser:
 
         elif tok.tipo == "PRINTLN":
             self.match("PRINTLN")
+
+            # Registra println na tabela (sem FunctionRegister), antes dos
+            # argumentos, na ordem do exemplo da especificação (seção 7.6)
+            if self.tabela_atual.buscar("println") is None:
+                self.tabela_atual.inserir(SimboloEntry(
+                    name="println", datatype=DataType.VOID,
+                    is_param=False, pos_param=-1,
+                ))
+
             self.match("LBRACKET")          # (
             self.match("FMT_STRING")
             self.match("COMMA")
@@ -316,38 +454,28 @@ class Parser:
             self.match("RBRACKET")          # )
             self.match("SEMICOLON")
 
-            # Registra println na tabela (sem FunctionRegister)
-            if self.tabela_atual.buscar("println") is None:
-                self.tabela_atual.inserir(SimboloEntry(
-                    name="println", datatype=DataType.VOID,
-                    is_param=False, pos_param=-1,
-                ))
-
         elif tok.tipo == "RETURN":
             self.match("RETURN")
             self.expr()
             self.match("SEMICOLON")
 
         else:
-            self._erro("comando (ID, if, while, println ou return)", tok)
+            self._erro("comando", tok)
 
     def atribuicao_ou_chamada(self, tok_id: Token):
         # AtribuicaoOuChamada → = Expr ; | ( ListaArgs ) ;
         tok = self.token_atual()
 
         if tok.tipo == "ASSIGN":
-            # Atribuição: ID = Expr ;
             self.match("ASSIGN")
             self.expr()
             self.match("SEMICOLON")
 
         elif tok.tipo == "LBRACKET":
-            # Chamada de função: ID ( ListaArgs ) ;
             self.match("LBRACKET")          # (
             args = self.lista_args()
             self.match("RBRACKET")          # )
             self.match("SEMICOLON")
-
             self._registrar_chamada(tok_id.lexema, args)
 
         else:
@@ -366,7 +494,6 @@ class Parser:
             self.comando_senao()
 
         elif tok.tipo == "LBRACE":
-            # Alternativa: Bloco (usada pelo 'else { … }')
             self.bloco()
 
         else:
@@ -389,10 +516,9 @@ class Parser:
         self.expr_opc()
 
     def expr_opc(self):
-        # ExprOpc → OpIgual Rel ExprOpc | ε
-        # OpIgual → == | !=
+        # ExprOpc → OpIgual Rel ExprOpc | ε     OpIgual → == | !=
         if self.token_atual().tipo in ("EQ", "NE"):
-            self.pos += 1               # consome == ou !=
+            self.pos += 1
             self.rel()
             self.expr_opc()
 
@@ -402,8 +528,7 @@ class Parser:
         self.rel_opc()
 
     def rel_opc(self):
-        # RelOpc → OpRel Adicao RelOpc | ε
-        # OpRel → < | <= | > | >=
+        # RelOpc → OpRel Adicao RelOpc | ε      OpRel → < | <= | > | >=
         if self.token_atual().tipo in ("LT", "LE", "GT", "GE"):
             self.pos += 1
             self.adicao()
@@ -415,8 +540,7 @@ class Parser:
         self.adicao_opc()
 
     def adicao_opc(self):
-        # AdicaoOpc → OpAdicao Termo AdicaoOpc | ε
-        # OpAdicao → + | -
+        # AdicaoOpc → OpAdicao Termo AdicaoOpc | ε     OpAdicao → + | -
         if self.token_atual().tipo in ("PLUS", "MINUS"):
             self.pos += 1
             self.termo()
@@ -428,8 +552,7 @@ class Parser:
         self.termo_opc()
 
     def termo_opc(self):
-        # TermoOpc → OpMult Fator TermoOpc | ε
-        # OpMult → * | /
+        # TermoOpc → OpMult Fator TermoOpc | ε         OpMult → * | /
         if self.token_atual().tipo in ("MULT", "DIV"):
             self.pos += 1
             self.fator()
@@ -454,8 +577,8 @@ class Parser:
             self.match("RBRACKET")      # )
 
         else:
-            self._erro("expressão (ID, constante ou '(')", tok)
-            self.pos += 1               # avança para não travar em recursão
+            # Não consome: quem chamou decide (o modo pânico sincroniza)
+            self._erro("expressão (identificador, constante ou '(')", tok)
 
     # ---- Chamada de função em expressão --------------------------------
 
@@ -503,8 +626,7 @@ class Parser:
             return tok.lexema
 
         else:
-            self._erro("argumento (ID ou constante)", tok)
-            self.pos += 1               # avança para não travar
+            self._erro("argumento (identificador ou constante)", tok)
             return "<erro>"
 
     # ══════════════════════════════════════════════════════════════════════
@@ -517,7 +639,8 @@ class Parser:
 
         entry = self.tabela_atual.buscar(nome)
         if entry is None:
-            # Primeira ocorrência: cria entrada (tipo será resolvido na semântica)
+            # Primeira ocorrência: cria entrada; o tipo é resolvido ao final
+            # da análise (a função pode ser definida depois da chamada)
             entry = SimboloEntry(
                 name=nome, datatype=DataType.VOID,
                 is_param=False, pos_param=-1,
@@ -525,3 +648,14 @@ class Parser:
             self.tabela_atual.inserir(entry)
 
         entry.call_refs.append(fr)
+
+    def _resolver_tipos_chamadas(self):
+        """Define o datatype dos símbolos de chamada como o ret_type da função
+        chamada. Função não definida no programa fica com DataType.ERROR."""
+        ret = {}
+        for t in self.tabelas:
+            ret.setdefault(t.nome_funcao, t.ret_type)   # 1ª definição vale
+        for t in self.tabelas:
+            for s in t.simbolos.values():
+                if s.call_refs:
+                    s.datatype = ret.get(s.name, DataType.ERROR)

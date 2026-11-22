@@ -1,0 +1,28 @@
+=== Tabela: main  |  ret_type = VOID ===
+  Chave    Name     DataType  is_param  pos_param  call_refs
+  -----------------------------------------------------------------------------------------
+  r        r        FLOAT     False     -1         NULL
+  media    media    FLOAT     False     -1         FuncReg(name=media, num_args=2, args=['1.5', '2.5']); FuncReg(name=media, num_args=2, args=['r', 'r'])
+  mostra   mostra   VOID      False     -1         FuncReg(name=mostra, num_args=2, args=['r', "'a'"]); FuncReg(name=mostra, num_args=2, args=['r', "'b'"])
+  println  println  VOID      False     -1         NULL
+
+  Registros de chamadas de função:
+    FuncReg(name=media, num_args=2, args=['1.5', '2.5'])
+    FuncReg(name=media, num_args=2, args=['r', 'r'])
+    FuncReg(name=mostra, num_args=2, args=['r', "'a'"])
+    FuncReg(name=mostra, num_args=2, args=['r', "'b'"])
+
+=== Tabela: media  |  ret_type = FLOAT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  a      a      FLOAT     True      0          NULL
+  b      b      FLOAT     True      1          NULL
+
+=== Tabela: mostra  |  ret_type = VOID ===
+  Chave    Name     DataType  is_param  pos_param  call_refs
+  -----------------------------------------------------------------------------------------
+  v        v        FLOAT     True      0          NULL
+  c        c        CHAR      True      1          NULL
+  println  println  VOID      False     -1         NULL
+
+Total: 3 tabela(s) de símbolos

@@ -1,0 +1,19 @@
+=== Tabela: maior  |  ret_type = INT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  a      a      INT       True      0          NULL
+  b      b      INT       True      1          NULL
+  m      m      INT       False     -1         NULL
+
+=== Tabela: main  |  ret_type = VOID ===
+  Chave    Name     DataType  is_param  pos_param  call_refs
+  -----------------------------------------------------------------------------------------
+  x        x        INT       False     -1         NULL
+  y        y        INT       False     -1         NULL
+  println  println  VOID      False     -1         NULL
+  maior    maior    INT       False     -1         FuncReg(name=maior, num_args=2, args=['x', 'y'])
+
+  Registros de chamadas de função:
+    FuncReg(name=maior, num_args=2, args=['x', 'y'])
+
+Total: 2 tabela(s) de símbolos

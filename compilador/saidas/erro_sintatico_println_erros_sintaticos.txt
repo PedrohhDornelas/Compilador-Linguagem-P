@@ -1,0 +1,5 @@
+Linha 4: Esperado ')', encontrado '+'
+Linha 5: Esperado ',', encontrado 'x'
+Linha 6: Esperado string de formatação, encontrado 'x'
+Linha 7: Esperado ')', encontrado ';'
+Total: 4 erro(s) sintático(s)

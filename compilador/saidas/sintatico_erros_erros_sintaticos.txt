@@ -1,0 +1,11 @@
+Linha 1: Esperado ':', encontrado 'int'
+Linha 2: Esperado ':', encontrado 'int'
+Linha 3: Esperado expressão (identificador, constante ou '('), encontrado ';'
+Linha 5: Esperado ';', encontrado 'println'
+Linha 5: Esperado ')', encontrado '+'
+Linha 7: Esperado ';', encontrado '}'
+Linha 9: Esperado ')', encontrado '{'
+Linha 14: Esperado 'int', 'float' ou 'char', encontrado '{'
+Linha 16: Esperado '{', encontrado 'c'
+Linha 17: Esperado '=' ou '(', encontrado '5'
+Total: 10 erro(s) sintático(s)

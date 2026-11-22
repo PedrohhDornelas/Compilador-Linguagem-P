@@ -1,0 +1,6 @@
+=== Tabela: main  |  ret_type = VOID ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  x      x      INT       False     -1         NULL
+
+Total: 1 tabela(s) de símbolos

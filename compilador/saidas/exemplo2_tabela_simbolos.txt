@@ -1,0 +1,19 @@
+=== Tabela: calculadora  |  ret_type = FLOAT ===
+  Chave  Name   DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------
+  op     op     CHAR      True      0          NULL
+  x      x      FLOAT     True      1          NULL
+  y      y      FLOAT     True      2          NULL
+
+=== Tabela: main  |  ret_type = VOID ===
+  Chave        Name         DataType  is_param  pos_param  call_refs
+  -------------------------------------------------------------------------------------------------
+  a            a            FLOAT     False     -1         NULL
+  b            b            FLOAT     False     -1         NULL
+  println      println      VOID      False     -1         NULL
+  calculadora  calculadora  FLOAT     False     -1         FuncReg(name=calculadora, num_args=3, args=["'*'", 'a', 'b'])
+
+  Registros de chamadas de função:
+    FuncReg(name=calculadora, num_args=3, args=["'*'", 'a', 'b'])
+
+Total: 2 tabela(s) de símbolos

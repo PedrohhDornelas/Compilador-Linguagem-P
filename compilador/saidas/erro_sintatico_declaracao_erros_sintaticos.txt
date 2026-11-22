@@ -1,0 +1,4 @@
+Linha 2: Esperado ':', encontrado 'int'
+Linha 3: Esperado identificador, encontrado ':'
+Linha 4: Esperado expressão (identificador, constante ou '('), encontrado ';'
+Total: 3 erro(s) sintático(s)
